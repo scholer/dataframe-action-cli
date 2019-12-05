@@ -27,27 +27,33 @@ def write_csv(df: pd.DataFrame, filename, header=True, index=False, index_label=
 def print_csv(df: pd.DataFrame, *args, limit=None, header=True, index=False, index_label=None, config=None, **kwargs) -> pd.DataFrame:
     header = ensure_input_type(header, bool, varname='header', args=args)
     index = ensure_input_type(index, bool, varname='index', args=args)
-    limit = int(limit)
     print_df = df
     if limit:
+        limit = int(limit)
         print_df = df.iloc[:limit]
     print(print_df.to_csv(header=header, index=index, index_label=index_label))
     return df
 
 
 def select_rows_from(df: pd.DataFrame, from_row, config=None) -> pd.DataFrame:
+    from_row = int(from_row)
     return df.loc[from_row:]
 
 
 def select_rows_to(df: pd.DataFrame, to_row, config=None) -> pd.DataFrame:
+    to_row = int(to_row)
     return df.loc[:to_row]
 
 
 def select_rows_between(df: pd.DataFrame, from_row, to_row, config=None) -> pd.DataFrame:
+    from_row = int(from_row)
+    to_row = int(to_row)
     return df.loc[from_row:to_row]
 
 
 def select_rows_islice(df: pd.DataFrame, from_row, to_row, config=None) -> pd.DataFrame:
+    from_row = int(from_row)
+    to_row = int(to_row)
     return df.iloc[from_row:to_row]
 
 
@@ -110,12 +116,12 @@ def select_where(df: pd.DataFrame, column, comparison_method, comparison_value=N
     return df.loc[df[column].apply(apply_func)]
 
 
-def sort_by(df: pd.DataFrame, *args, kind='quicksort', na_position='last', config=None) -> pd.DataFrame:
+def sort_by(df: pd.DataFrame, *columns, kind='mergesort', na_position='last', config=None) -> pd.DataFrame:
     """
 
     Args:
         df: DataFrame.
-        *args:
+        *columns:
             Use <column>::ascending or <column>::descending to control ascending or descending sort order.
         config:
 
@@ -123,18 +129,44 @@ def sort_by(df: pd.DataFrame, *args, kind='quicksort', na_position='last', confi
 
     Examples:
 
-        >>> sort_by(df, ["Pool-name::desc", "Plate-name", "Pos"])
+        >>> sort_by_cols(df, ["Pool-name::desc", "Plate-name", "Pos"])
 
     """
-    sort_by, ascending = zip(*[
+    sort_by_cols, ascending = zip(*[
         (column.split("::")[0], False) if '::des' in column else (column, True)
-        for column in args
+        for column in columns
     ])
     # OBS: When giving multiple columns to sort on, it should be a list, not a tuple.
-    return df.sort_values(by=list(sort_by), ascending=list(ascending), kind=kind, na_position=na_position)
+    return df.sort_values(by=list(sort_by_cols), ascending=list(ascending), kind=kind, na_position=na_position)
 
 
-def natsort_by(df: pd.DataFrame, column, reverse=False, config=None) -> pd.DataFrame:
+def natsort_by(df: pd.DataFrame, *columns, kind='mergesort', na_position='last', config=None) -> pd.DataFrame:
+    """ Sort strings naturally, e.g. sort "A2" before "A10" """
+    try:
+        import natsort
+    except ImportError:
+        print("\n\nERROR!   --> Could not import natsort! <--  "
+              "DataFrame will not be sorted. Please install the 'natsort' package.",
+              file=sys.stderr)
+        return df
+
+    sort_by_cols, ascending = zip(*[
+        (column.split("::")[0], False) if '::des' in column else (column, True)
+        for column in columns
+    ])
+    # Should be lists, not tuples, when used as arguments to DataFrame.sort_values().
+    sort_by_cols, ascending = list(sort_by_cols), list(ascending)
+
+    keyfunc = natsort.natsort_key
+    keyvalues = pd.DataFrame(data={col: df[col].apply(keyfunc) for col in sort_by_cols})
+    # Alternatively, concatenate the series horizontally to make a dataframe:
+    # keyvalues = pd.concat([df[col].apply(keyfunc) for col in sort_by], axis=1)
+    sorted_keyvalues = keyvalues.sort_values(by=sort_by_cols, ascending=ascending)
+    sorted_idxs = sorted_keyvalues.index
+    return df.iloc[sorted_idxs]
+
+
+def natsort_by_single(df: pd.DataFrame, column, reverse=False, config=None) -> pd.DataFrame:
     """ Sort strings naturally, e.g. sort "A2" before "A10" """
     try:
         import natsort
@@ -145,6 +177,14 @@ def natsort_by(df: pd.DataFrame, column, reverse=False, config=None) -> pd.DataF
         return df
     sorted_idxs = natsort.index_natsorted(df[column], reverse=reverse)
     return df.iloc[sorted_idxs]
+
+
+def group_as(df: pd.DataFrame, column, reverse=False, config=None) -> pd.DataFrame:
+    """ Sort groups in a particular, custom order.
+    This will also remove rows in unlisted groups.
+    For instance, if you want to first list 'Banana', then 'Apple', then 'Citrus'.
+    """
+    pass
 
 
 def create_column_dfeval(df: pd.DataFrame, *args, config=None) -> pd.DataFrame:
@@ -228,6 +268,7 @@ ACTIONS = {
 
     # Row sorting:
     'sort-by': sort_by,
+    'natsort-single': natsort_by_single,
     'natsort-by': natsort_by,
     'natsort': natsort_by,
     'sort-natural': natsort_by,
