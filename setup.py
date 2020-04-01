@@ -23,7 +23,7 @@ See `README.md` for usage.
 
 setup(
     name='dataframe-action-cli',
-    version='2019.12.05',
+    version='2020.1.15',
     packages=['dataframe_action_cli'],
     url='https://github.com/scholer/dataframe-action-cli',
     license='GPLv3',

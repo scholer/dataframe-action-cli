@@ -1,6 +1,12 @@
 # Copyright 2019, Rasmus Sorensen <rasmusscholer@gmail.com>
 """
 
+Functional DataFrame actions.
+
+Examples:
+
+
+
 
 """
 
@@ -188,7 +194,11 @@ def group_as(df: pd.DataFrame, column, reverse=False, config=None) -> pd.DataFra
 
 
 def create_column_dfeval(df: pd.DataFrame, *args, config=None) -> pd.DataFrame:
-    """ Create a new column using DataFrame.eval(expr, engine='python'). """
+    """ Create a new column using DataFrame.eval(expr, engine='python').
+
+    For more info on using Pandas eval, see:
+    https://stackoverflow.com/questions/53779986/dynamic-expression-evaluation-in-pandas-using-pd-eval
+    """
 
     # OBS: Slicing is not a supported operation, meaning you cannot do much string manipulation.
     #
@@ -253,10 +263,13 @@ ACTIONS = {
     'read-file': read_file,
     'read-from': read_file,
     'read-csv': read_file,
+    'read': read_file,
     'write-file': write_csv,
     'write-to': write_csv,
     'write-csv': write_csv,
+    'write': write_csv,
     'print-csv': print_csv,
+    'print': print_csv,
 
     # Row-selection commands:
     'select-rows-from': select_rows_from,
